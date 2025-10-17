@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import * as XLSX from "xlsx";
 
+// --- API prefix ---
 const urlPrefix = "https://localhost:7012/api/Salman/";
 
 // --- API Calls ---
@@ -68,37 +70,46 @@ async function deleteProduct(productId, callback) {
   if (callback) callback(result);
   return result;
 }
+async function generateExcelTemplate() {
+  const res = await fetch(urlPrefix + "CreateExcelTemplate", {
+    method: "POST"
+  });
+  if (!res.ok) throw new Error("Failed to create Excel template");
+  const result = await res.json();
+  alert(result.message);
+  return result;
+}
 
 // --- UI Components ---
 function EditSvg() {
   return (
     <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-      <rect width="24" height="24" rx="8" fill="#3b82f6"/>
-      <path d="M7 17h2l7-7-2-2-7 7v2z" stroke="#fff" strokeWidth="1.2"/>
-      <path d="M14.5 7.5l2 2" stroke="#fff" strokeWidth="0.9"/>
+      <rect width="24" height="24" rx="8" fill="#3b82f6" />
+      <path d="M7 17h2l7-7-2-2-7 7v2z" stroke="#fff" strokeWidth="1.2" />
+      <path d="M14.5 7.5l2 2" stroke="#fff" strokeWidth="0.9" />
     </svg>
   );
 }
 function DeleteSvg() {
   return (
     <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-      <rect width="24" height="24" rx="8" fill="#ef4444"/>
-      <path d="M8.5 8.5l7 7M8.5 15.5l7-7" stroke="#fff" strokeWidth="1.2" strokeLinecap="round"/>
+      <rect width="24" height="24" rx="8" fill="#ef4444" />
+      <path d="M8.5 8.5l7 7M8.5 15.5l7-7" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   );
 }
 function PlusIcon() {
   return (
     <svg width="24" height="24" fill="none" viewBox="0 0 20 20">
-      <circle cx="10" cy="10" r="9" fill="#16a34a"/>
-      <path d="M10 6v8M6 10h8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="10" cy="10" r="9" fill="#16a34a" />
+      <path d="M10 6v8M6 10h8" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
 function ExcelIcon() {
   return (
     <svg width="22" height="22" fill="none" viewBox="0 0 20 20">
-      <rect width="20" height="20" rx="4" fill="#65b32e"/>
+      <rect width="20" height="20" rx="4" fill="#65b32e" />
       <text x="2" y="15" fontSize="9" fill="#fff" fontWeight="bold">XLSX</text>
     </svg>
   );
@@ -114,7 +125,7 @@ function SearchableSelect({ options, value, onChange, placeholder }) {
   return (
     <div className="relative">
       <input
-        className="border px-3 py-2 rounded w-full bg-gray-50 cursor-pointer"
+        className="border px-3 py-2 rounded-lg w-full bg-gray-50 cursor-pointer focus:outline-green-500"
         value={selected?.label || ""}
         placeholder={placeholder || "Select"}
         onFocus={() => setOpen(true)}
@@ -123,14 +134,20 @@ function SearchableSelect({ options, value, onChange, placeholder }) {
           setQ(e.target.value);
         }}
         readOnly={!open}
-        onBlur={() => setTimeout(() => setOpen(false), 140)}
         autoComplete="off"
+        style={{ transition: "box-shadow .14s" }}
       />
-      {open && (
-        <div className="absolute z-50 w-full bg-white border shadow-xl max-h-44 overflow-y-auto rounded">
+      <AnimatePresence>
+      {open &&
+        <motion.div
+          initial={{ opacity: 0, y: 10, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 10, scale: 0.98 }}
+          className="absolute left-0 top-full mt-1 z-50 w-full bg-white border shadow-2xl max-h-60 overflow-y-auto rounded-xl"
+          transition={{ duration: 0.14 }}>
           <div className="p-1">
             <input
-              className="border px-2 py-1 rounded w-full mb-1 text-xs"
+              className="border px-2 py-1 rounded w-full mb-2 text-xs focus:outline-none"
               value={q}
               onChange={e => setQ(e.target.value)}
               autoFocus
@@ -143,40 +160,71 @@ function SearchableSelect({ options, value, onChange, placeholder }) {
           {filtered.map(opt => (
             <div
               key={`${opt.value}-${opt.label}`}
-              className={`px-3 py-2 cursor-pointer hover:bg-green-50 text-sm rounded ${String(opt.value) === String(value) ? "bg-green-100 font-bold" : ""}`}
+              className={`px-3 py-2 cursor-pointer hover:bg-green-100 text-base rounded-xl
+                ${String(opt.value) === String(value) ? "bg-green-200 font-bold" : ""}`}
               onMouseDown={() => {
                 onChange(opt.value);
                 setOpen(false);
                 setQ("");
               }}
+              style={{ transition: "background .18s" }}
             >{opt.label}</div>
           ))}
-        </div>
-      )}
+        </motion.div>
+      }
+      </AnimatePresence>
     </div>
   );
 }
-
 function ExcelImportModal({ open, onClose, onImport }) {
   const [file, setFile] = useState(null);
   const [importing, setImporting] = useState(false);
+
   const handleSubmit = async e => {
     e.preventDefault();
     if (!file) return;
     setImporting(true);
-    const formData = new FormData();
-    formData.append("file", file);
     try {
-      const res = await fetch(urlPrefix + "import-products", {
-        method: "POST",
-        body: formData
-      });
-      if (!res.ok) throw new Error("Failed to import Excel");
-      const result = await res.json();
-      if (onImport) onImport(result);
-      setImporting(false);
-      onClose();
-      alert("Import successful!");
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        try {
+          const bstr = evt.target.result;
+          const wb = XLSX.read(bstr, { type: "binary" });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          let data = XLSX.utils.sheet_to_json(ws, { defval: "" });
+  
+          const mappedData = data.map((row, index) => ({
+            SlNo: row.SlNo || index + 1,
+            ProductName: row.ProductName || "",
+            Category: row.Category || "",
+            Size: row.Size || "",
+            Brand: row.Brand || "",
+            Color: row.Color || "",
+            ActualPrice: Number(row.ActualPrice) || 0,
+            SellingPrice: Number(row.SellingPrice) || 0
+          }));
+  
+          const res = await fetch(urlPrefix + "BulkInsertProducts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(mappedData)
+          });
+          if (!res.ok) throw new Error("Failed to import Excel");
+          const result = await res.json();
+          if (onImport) onImport(result);
+          setImporting(false);
+          onClose();
+        } catch (err) {
+          setImporting(false);
+          alert("Import failed: " + err.message);
+        }
+      };
+      reader.onerror = (err) => {
+        setImporting(false);
+        alert("File reading failed: " + err.message);
+      };
+      reader.readAsBinaryString(file);
     } catch (err) {
       setImporting(false);
       alert("Import failed: " + err.message);
@@ -187,10 +235,7 @@ function ExcelImportModal({ open, onClose, onImport }) {
       {open && (
         <motion.div
           className="fixed inset-0 flex items-center justify-center z-50"
-          style={{
-            backdropFilter: "blur(2.7px)",
-            background: "rgba(52, 255, 92, 0.18)"
-          }}
+          style={{ backdropFilter: "blur(2.7px)", background: "rgba(52, 255, 92, 0.18)" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -231,75 +276,119 @@ function ProductModal({ open, onClose, onSubmit, fields, setFields, mode, allOpt
     const { name, type, value, checked } = e.target;
     setFields(f => ({ ...f, [name]: type === "checkbox" ? checked : value }));
   };
+  const modalFields = [
+      { label: "Product Name", name: "Name", type: "input" },
+      { label: "Brand", name: "BrandID", type: "select", options: allOptions.BrandID },
+      { label: "Category", name: "CategoryID", type: "select", options: allOptions.CategoryID },
+      { label: "Size", name: "SizeID", type: "select", options: allOptions.SizeID },
+      { label: "Color", name: "ColorID", type: "select", options: allOptions.ColorID },
+      { label: "Supplier", name: "SupplierID", type: "select", options: allOptions.SupplierID },
+      { label: "Purchase Price", name: "PurchasePrice", type: "input", inputType: "number" },
+      { label: "Sale Price", name: "SalePrice", type: "input", inputType: "number" },
+      { label: "SKU", name: "SKU", type: "input" },
+      { label: "Description", name: "Description", type: "input" }
+  ];
+  // Group fields, two per row
+  const rows = [];
+  for (let i = 0; i < modalFields.length; i += 2) {
+    rows.push([modalFields[i], modalFields[i + 1]]);
+  }
   return (
     <AnimatePresence>
       {open && (
         <motion.div
           className="fixed inset-0 flex items-center justify-center z-50"
-          style={{
-            backdropFilter: "blur(2px)",
-            background: "rgba(20,220,100,0.11)"
-          }}
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.96 }}
+          style={{ backdropFilter: "blur(8px)", background: "rgba(22,140,60,0.04)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
         >
           <motion.form
             onSubmit={onSubmit}
-            className="rounded-2xl shadow-2xl bg-white p-0 w-[720px] max-w-full relative border border-green-400"
-            initial={{ y: 20, opacity: 0.97 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 28, opacity: 0.94 }}
-            transition={{ duration: 0.16, type: 'spring' }}
-            style={{ minHeight: '0', maxHeight: '90vh', overflowY: 'auto' }}
+            className="rounded-3xl shadow-2xl bg-gradient-to-br from-green-50 to-white p-0 w-[870px] max-w-4xl relative border border-green-400"
+            initial={{ scale: 0.97, y: 20, opacity: 0.92 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.97, y: 20, opacity: 0.94 }}
+            transition={{ duration: 0.18, type: 'spring' }}
+            style={{ minHeight: '0', maxHeight: '92vh', overflowY: 'auto' }}
+            autoComplete="off"
           >
-            <div className="bg-gradient-to-r from-green-600 via-green-500 to-green-400 text-white font-bold px-10 py-4 rounded-t-2xl text-xl flex items-center">
+            <div className="bg-gradient-to-r from-green-600 via-green-500 to-green-400 text-white font-bold px-10 py-6 rounded-t-3xl text-2xl flex items-center shadow-md">
               {mode === "add" ? "Add Product" : "Edit Product"}
               <button
-                className="ml-auto text-base font-bold bg-gray-200 text-gray-900 rounded-full px-2 py-0.5 hover:bg-gray-400 hover:text-white transition"
                 type="button"
-                aria-label="Close"
+                className="ml-auto text-xl font-bold bg-white/80 text-green-700 rounded-full px-3 py-0.5 hover:bg-green-600 hover:text-white transition"
                 onClick={onClose}
-                style={{marginLeft: 18}}
                 title="Close"
+                aria-label="Close"
+                style={{ marginLeft: 28 }}
               >×</button>
             </div>
-            <div className="px-10 pt-5 pb-4">
-              <div className="grid grid-cols-2 gap-x-8 gap-y-4 mb-5">
-                <input name="Name" placeholder="Product Name" value={fields.Name} onChange={handleChange} className="border rounded px-4 py-2" />
-                <SearchableSelect
-                  options={allOptions.BrandID} value={fields.BrandID} onChange={v => setFields(f => ({ ...f, BrandID: v }))}
-                  placeholder="Brand"
-                />
-                <SearchableSelect
-                  options={allOptions.CategoryID} value={fields.CategoryID} onChange={v => setFields(f => ({ ...f, CategoryID: v }))}
-                  placeholder="Category"
-                />
-                <SearchableSelect
-                  options={allOptions.SizeID} value={fields.SizeID} onChange={v => setFields(f => ({ ...f, SizeID: v }))}
-                  placeholder="Size"
-                />
-                <SearchableSelect
-                  options={allOptions.ColorID} value={fields.ColorID} onChange={v => setFields(f => ({ ...f, ColorID: v }))}
-                  placeholder="Color"
-                />
-                <SearchableSelect
-                  options={allOptions.SupplierID} value={fields.SupplierID} onChange={v => setFields(f => ({ ...f, SupplierID: v }))}
-                  placeholder="Supplier"
-                />
-                <input name="PurchasePrice" type="number" placeholder="Purchase Price" value={fields.PurchasePrice} onChange={handleChange} className="border rounded px-4 py-2" />
-                <input name="SalePrice" type="number" placeholder="Sale Price" value={fields.SalePrice} onChange={handleChange} className="border rounded px-4 py-2" />
-                <input name="SKU" placeholder="SKU" value={fields.SKU} onChange={handleChange} className="border rounded px-4 py-2" />
-                <input name="Description" placeholder="Description" value={fields.Description} onChange={handleChange} className="border rounded px-4 py-2" />
+            <div className="px-12 py-9 pb-5">
+              {/* Form grid: two label-field pairs per row */}
+              <div className="flex flex-col gap-y-7 mb-5">
+                {rows.map((row, rIdx) => (
+                  <div className="flex gap-x-16 items-center" key={rIdx}>
+                    {row.map(field => field && (
+                      <div className="flex items-center w-1/2 gap-x-4" key={field.name}>
+                        <label
+                          htmlFor={field.name}
+                          className="text-lg font-semibold text-green-800 w-40 text-right"
+                        >
+                          {field.label}
+                        </label>
+                        {field.type === "input" ? (
+                          <input
+                            type={field.inputType || "text"}
+                            name={field.name}
+                            id={field.name}
+                            value={fields[field.name]}
+                            onChange={handleChange}
+                            className="border rounded-lg px-4 py-2 text-base bg-gray-100 w-[70%] focus:bg-white focus:shadow-outline focus:ring-2 focus:ring-green-400 transition"
+                          />
+                        ) : (
+                          <div className="w-[70%]">
+                            <SearchableSelect
+                              options={field.options}
+                              value={fields[field.name]}
+                              onChange={v =>
+                                setFields(f => ({ ...f, [field.name]: v }))
+                              }
+                              placeholder={field.label}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center gap-3 px-1">
-                <input type="checkbox" name="IsActive" checked={fields.IsActive} onChange={handleChange} className="w-5 h-5 accent-green-700" />
-                <label className="text-sm font-semibold text-green-700">Active</label>
-                <button type="submit" className="ml-auto bg-green-600 text-white px-8 py-2 rounded-full font-bold text-base shadow hover:bg-green-800 transition">
-                  {mode === "add" ? "Add" : "Update"}
+              {/* Remaining action bar */}
+              <div className="flex items-center gap-6 px-2 mt-5 mb-3">
+                <input
+                  type="checkbox"
+                  name="IsActive"
+                  checked={fields.IsActive}
+                  onChange={handleChange}
+                  className="w-6 h-6 accent-green-700 border border-green-700 rounded"
+                  id="IsActive"
+                />
+                <label htmlFor="IsActive" className="text-md font-semibold text-green-700 mr-auto">
+                  Active
+                </label>
+                <button
+                  type="submit"
+                  className="ml-auto bg-gradient-to-r from-green-700 via-green-600 to-green-500 text-white px-10 py-3 rounded-full font-bold text-lg shadow hover:scale-105 transition"
+                >
+                  {mode === "add" ? "Add Product" : "Update Product"}
                 </button>
-                <button type="button" className="bg-gray-200 px-5 py-2 rounded-full font-bold text-base text-gray-700 border hover:bg-gray-300 transition"
-                        onClick={onClose}>Cancel</button>
+                <button
+                  type="button"
+                  className="bg-gray-200 px-7 py-3 rounded-full font-bold text-lg text-gray-700 border hover:bg-gray-300 transition"
+                  onClick={onClose}
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </motion.form>
@@ -308,6 +397,7 @@ function ProductModal({ open, onClose, onSubmit, fields, setFields, mode, allOpt
     </AnimatePresence>
   );
 }
+
 
 export default function Product() {
   const [products, setProducts] = useState([]);
@@ -343,7 +433,7 @@ export default function Product() {
     PurchasePrice: ""
   });
 
-  // Fetch dropdown options from API (ONCE)
+  // Dropdowns API
   const [dropdowns, setDropdowns] = useState([]);
   useEffect(() => {
     fetch('https://localhost:7012/api/Salman/usp_GetDropdowuns')
@@ -352,9 +442,7 @@ export default function Product() {
       .catch(() => setDropdowns([]));
   }, []);
 
-  // Build grouped options for modal and display mapping for grid
   function groupOptions(type) {
-    // To avoid duplicate values, append sourcetype to value for key uniqueness
     return dropdowns
       .filter(x => x.SourceType === type)
       .map(x => ({ value: String(x.ID), label: x.Name }));
@@ -367,7 +455,6 @@ export default function Product() {
     SupplierID: groupOptions("Supplier"),
   };
 
-  // Helper: get label by numeric value for given type
   function getNameById(sourceType, id) {
     if (!id) return "--";
     const opt = dropdowns.find(x => String(x.SourceType) === String(sourceType) && String(x.ID) === String(id));
@@ -385,6 +472,11 @@ export default function Product() {
     { key: "SalePrice", label: "Sale Price" },
     { key: "PurchasePrice", label: "Purchase Price" }
   ];
+
+  // For upload result and error modal
+  const [uploadResult, setUploadResult] = useState(null);
+  const [uploadErrors, setUploadErrors] = useState(null);
+  const [showResultPopup, setShowResultPopup] = useState(false);
 
   const loadProducts = async () => {
     try {
@@ -429,14 +521,106 @@ export default function Product() {
     });
     setShowAdd(true);
   }
-  function openEditModal(product) { setEditFields({ ...product }); setShowEdit(true);}
-  function closeModal() { setShowAdd(false); setShowEdit(false); setEditFields(null);}
-  function openImportModal() { setShowImport(true);}
-  function closeImportModal() { setShowImport(false);}
-  function handleExportExcel() {
-    // Wire up your Excel export logic here
-    alert("Excel export not implemented! Attach your own code here.");
+  function openEditModal(product) { setEditFields({ ...product }); setShowEdit(true); }
+  function closeModal() { setShowAdd(false); setShowEdit(false); setEditFields(null); }
+  function openImportModal() { setShowImport(true); }
+  function closeImportModal() { setShowImport(false); }
+
+  async function handleGenerateExcel() {
+    try {
+      await generateExcelTemplate();
+    } catch (e) {
+      alert("Excel template generation failed: " + e.message);
+    }
   }
+
+  // Handle result from Excel import to show popup accordingly
+  const handleExcelImportResult = (result) => {
+    const hasErrors = Array.isArray(result) && result.some(item => item.ErrorMessage);
+    if (hasErrors) {
+      setUploadErrors(result);
+      setUploadResult(null);
+    } else {
+      setUploadResult(result && result.length > 0 ? result[0] : null);
+      setUploadErrors(null);
+      loadProducts();
+    }
+    setShowResultPopup(true);
+  };
+
+  // Download error PDF from server
+  const downloadErrorPdf = async () => {
+    if (!uploadErrors) return;
+    try {
+      const res = await fetch(urlPrefix + "DownloadErrorPdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(uploadErrors),
+      });
+      if (!res.ok) throw new Error("Failed to download PDF");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ImportErrors.pdf";
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Download failed: " + err.message);
+    }
+  };
+
+  // Popup to show upload results or error messages
+  const UploadResultPopup = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-lg p-6 max-w-4xl w-full shadow-lg relative">
+        <button
+          onClick={() => {
+            setShowResultPopup(false);
+            setUploadErrors(null);
+            setUploadResult(null);
+          }}
+          className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 text-2xl font-bold"
+          aria-label="Close Popup"
+        >×</button>
+
+        {uploadErrors ? (
+          <>
+            <h2 className="text-red-600 font-bold text-xl mb-4">Import Errors</h2>
+            <div className="max-h-72 overflow-auto border rounded p-3 mb-4 bg-gray-50">
+            {uploadErrors.map(({ SlNo, ErrorMessage }, i) => (
+                  <div key={i} className="mb-2 p-2 border-b last:border-b-0 flex justify-between items-center">
+                     <span><strong>SlNo:</strong> {SlNo}</span>
+                  <span className="text-red-600 font-semibold"><strong>Error:</strong> {ErrorMessage}</span>
+                 </div>
+               ))}
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowResultPopup(false)}
+                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+              >Close</button>
+              <button
+                onClick={downloadErrorPdf}
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+              >Download PDF</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="text-green-600 font-bold text-xl mb-4">Import Successful</h2>
+            <p className="mb-4">Products inserted successfully: {uploadResult?.InsertedCount ?? 0}</p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowResultPopup(false)}
+                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+              >Close</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="w-full min-h-full px-3 pt-3">
@@ -447,9 +631,9 @@ export default function Product() {
         <div className="flex gap-3 items-center">
           <button
             className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded shadow font-bold hover:bg-green-800 transition text-base"
-            onClick={handleExportExcel}
+            onClick={handleGenerateExcel}
           >
-            <ExcelIcon /> Export XLSX
+            <ExcelIcon /> Generate XLSX
           </button>
           <button
             className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded shadow font-bold hover:bg-green-600 transition text-base"
@@ -527,8 +711,14 @@ export default function Product() {
           </tbody>
         </table>
       </div>
-      {/* Excel Import Modal */}
-      <ExcelImportModal open={showImport} onClose={closeImportModal} onImport={loadProducts} />
+
+      {/* Excel Import Modal - Pass a new onImport handler to show popup */}
+      <ExcelImportModal
+        open={showImport}
+        onClose={closeImportModal}
+        onImport={(result) => handleExcelImportResult(result)}
+      />
+
       {/* Add Modal */}
       <ProductModal
         open={showAdd}
@@ -561,6 +751,9 @@ export default function Product() {
         mode="edit"
         allOptions={allOptions}
       />
+
+      {/* Upload Result Popup */}
+      {showResultPopup && <UploadResultPopup />}
     </motion.div>
   );
 }
