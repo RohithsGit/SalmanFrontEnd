@@ -39,8 +39,8 @@ const authSlice = createSlice({
 
 export const { loginStart, loginSuccess, loginFailure, resetAuthState } = authSlice.actions;
 
-export const urlPrefix = "https://localhost:7012/api/Salman/"; // update as needed
-export const urlPrefixLive="https://rohiththota-001.site4now.net/api/Salman/"//for live (Internet)
+export const urlPrefixLive = "https://localhost:7012/api/Salman/"; // update as needed
+export const urlPrefix="https://rohiththota-001.site4now.net/api/Salman/"//for live (Internet)
 const store = configureStore({
   reducer: {
     auth: authSlice.reducer,
