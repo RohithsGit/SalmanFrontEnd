@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-const urlPrefix = "https://localhost:7012/api/Salman/";
+import { urlPrefix,urlPrefixLive } from "../store/store";
+
 
 export default function Category() {
   const [categories, setCategories] = useState(null); // null = loading, [] = no data, array = data
@@ -21,7 +22,7 @@ export default function Category() {
     setError(null);
     setCategories(null);
     try {
-      const response = await fetch(urlPrefix + "categories", {
+      const response = await fetch(urlPrefixLive + "categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ Flag: "View", CategoryID: 0, Name: "" })
@@ -43,7 +44,7 @@ export default function Category() {
 
   const confirmDelete = id => setDeleteConfirm({ show: true, id });
   const doDelete = async () => {
-    await fetch(urlPrefix + "categories", {
+    await fetch(urlPrefixLive + "categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ Flag: "Delete", CategoryID: deleteConfirm.id, Name: "" })
@@ -56,13 +57,13 @@ export default function Category() {
   const handleFormSubmit = async e => {
     e.preventDefault();
     if (formMode === "add") {
-      await fetch(urlPrefix + "categories", {
+      await fetch(urlPrefixLive + "categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ Flag: "Create", CategoryID: 0, Name: formName })
       });
     } else if (formMode === "edit") {
-      await fetch(urlPrefix + "categories", {
+      await fetch(urlPrefixLive + "categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ Flag: "Update", CategoryID: editCategory.CategoryID, Name: formName })

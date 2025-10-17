@@ -40,6 +40,7 @@ const authSlice = createSlice({
 export const { loginStart, loginSuccess, loginFailure, resetAuthState } = authSlice.actions;
 
 export const urlPrefix = "https://localhost:7012/api/Salman/"; // update as needed
+export const urlPrefixLive=""//for live (Internet)
 const store = configureStore({
   reducer: {
     auth: authSlice.reducer,

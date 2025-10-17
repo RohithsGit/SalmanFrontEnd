@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { loginStart, loginSuccess, loginFailure, urlPrefix } from "./store/store.jsx";
+import { loginStart, loginSuccess, loginFailure, urlPrefix,urlPrefixLive } from "./store/store.jsx";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
@@ -14,7 +14,7 @@ export default function Login() {
     e.preventDefault();
     dispatch(loginStart());
     try {
-      const response = await fetch(`${urlPrefix}ValidUser`, {
+      const response = await fetch(`${urlPrefixLive}ValidUser`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({

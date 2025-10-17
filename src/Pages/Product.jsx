@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { urlPrefix,urlPrefixLive } from "../store/store";
 import * as XLSX from "xlsx";
-
-// --- API prefix ---
-const urlPrefix = "https://localhost:7012/api/Salman/";
 
 // --- API Calls ---
 function fillProductPayload(obj) {
@@ -26,7 +24,7 @@ function fillProductPayload(obj) {
 }
 async function fetchProductList() {
   const payload = fillProductPayload({ Flag: "View", ProductID: 0 });
-  const response = await fetch(urlPrefix + "products", {
+  const response = await fetch(urlPrefixLive + "products", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
@@ -36,7 +34,7 @@ async function fetchProductList() {
 }
 async function addProduct(data, callback) {
   const payload = fillProductPayload({ ...data, Flag: "Create", ProductID: 0 });
-  const res = await fetch(urlPrefix + "products", {
+  const res = await fetch(urlPrefixLive + "products", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
@@ -48,7 +46,7 @@ async function addProduct(data, callback) {
 }
 async function updateProduct(data, callback) {
   const payload = fillProductPayload({ ...data, Flag: "Update" });
-  const res = await fetch(urlPrefix + "products", {
+  const res = await fetch(urlPrefixLive + "products", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
@@ -60,7 +58,7 @@ async function updateProduct(data, callback) {
 }
 async function deleteProduct(productId, callback) {
   const payload = fillProductPayload({ Flag: "Delete", ProductID: productId });
-  const res = await fetch(urlPrefix + "products", {
+  const res = await fetch(urlPrefixLive + "products", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
@@ -71,7 +69,7 @@ async function deleteProduct(productId, callback) {
   return result;
 }
 async function generateExcelTemplate() {
-  const res = await fetch(urlPrefix + "CreateExcelTemplate", {
+  const res = await fetch(urlPrefixLive + "CreateExcelTemplate", {
     method: "POST"
   });
   if (!res.ok) throw new Error("Failed to create Excel template");
@@ -205,7 +203,7 @@ function ExcelImportModal({ open, onClose, onImport }) {
             SellingPrice: Number(row.SellingPrice) || 0
           }));
   
-          const res = await fetch(urlPrefix + "BulkInsertProducts", {
+          const res = await fetch(urlPrefixLive + "BulkInsertProducts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(mappedData)
@@ -552,7 +550,7 @@ export default function Product() {
   const downloadErrorPdf = async () => {
     if (!uploadErrors) return;
     try {
-      const res = await fetch(urlPrefix + "DownloadErrorPdf", {
+      const res = await fetch(urlPrefixLive + "DownloadErrorPdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(uploadErrors),

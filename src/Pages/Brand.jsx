@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-const urlPrefix = "https://localhost:7012/api/Salman/";
+import { urlPrefix,urlPrefixLive } from "../store/store";
 
 export default function Brand() {
   const [brands, setBrands] = useState(null); // null = loading, [] = no data, array = data
@@ -32,7 +32,7 @@ export default function Brand() {
     setError(null);
     setBrands(null);
     try {
-      const response = await fetch(urlPrefix + "brands", {
+      const response = await fetch(urlPrefixLive + "brands", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -91,7 +91,7 @@ export default function Brand() {
 
   const confirmDelete = id => setDeleteConfirm({ show: true, id });
   const doDelete = async () => {
-    await fetch(urlPrefix + "brands", {
+    await fetch(urlPrefixLive + "brands", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
@@ -113,7 +113,7 @@ export default function Brand() {
   const handleFormSubmit = async e => {
     e.preventDefault();
     if (formMode === "add") {
-      await fetch(urlPrefix + "brands", {
+      await fetch(urlPrefixLive + "brands", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -123,7 +123,7 @@ export default function Brand() {
         })
       });
     } else if (formMode === "edit") {
-      await fetch(urlPrefix + "brands", {
+      await fetch(urlPrefixLive + "brands", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

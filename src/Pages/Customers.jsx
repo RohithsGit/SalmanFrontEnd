@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-const urlPrefix = "https://localhost:7012/api/Salman/";
+import { urlPrefix,urlPrefixLive } from "../store/store";
 
 export default function Customers() {
   const [customers, setCustomers] = useState(null); // null = loading, [] = no data, array = data
@@ -30,7 +30,7 @@ export default function Customers() {
     setError(null);
     setCustomers(null);
     try {
-      const response = await fetch(urlPrefix + "customers", {
+      const response = await fetch(urlPrefixLive + "customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -78,7 +78,7 @@ export default function Customers() {
 
   const confirmDelete = id => setDeleteConfirm({ show: true, id });
   const doDelete = async () => {
-    await fetch(urlPrefix + "customers", {
+    await fetch(urlPrefixLive + "customers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -98,7 +98,7 @@ export default function Customers() {
   const handleFormSubmit = async e => {
     e.preventDefault();
     if (formMode === "add") {
-      await fetch(urlPrefix + "customers", {
+      await fetch(urlPrefixLive + "customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -108,7 +108,7 @@ export default function Customers() {
         })
       });
     } else if (formMode === "edit") {
-      await fetch(urlPrefix + "customers", {
+      await fetch(urlPrefixLive + "customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

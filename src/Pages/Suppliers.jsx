@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-const urlPrefix = "https://localhost:7012/api/Salman/";
+import { urlPrefix,urlPrefixLive } from "../store/store";
 
 export default function Supplier() {
   const [suppliers, setSuppliers] = useState(null);
@@ -27,7 +27,7 @@ export default function Supplier() {
     setError(null);
     setSuppliers(null);
     try {
-      const response = await fetch(urlPrefix + "suppliers", {
+      const response = await fetch(urlPrefixLive + "suppliers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -63,7 +63,7 @@ export default function Supplier() {
 
   const confirmDelete = id => setDeleteConfirm({ show: true, id });
   const doDelete = async () => {
-    await fetch(urlPrefix + "suppliers/action", {
+    await fetch(urlPrefixLive + "suppliers/action", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -113,7 +113,7 @@ export default function Supplier() {
         Address: formFields.Address
       };
     }
-    await fetch(urlPrefix + "suppliers", {
+    await fetch(urlPrefixLive + "suppliers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(requestBody)

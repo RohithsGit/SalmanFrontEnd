@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { urlPrefix,urlPrefixLive } from "../store/store";
 import html2canvas from "html2canvas";
 
 // --- Product List ---

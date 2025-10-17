@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-const urlPrefix = "https://localhost:7012/api/Salman/";
+import { urlPrefix,urlPrefixLive } from "../store/store";
 
 export default function Color() {
   const [colors, setColors] = useState(null); // null = loading, [] = no data, array = data
@@ -21,7 +21,7 @@ export default function Color() {
     setError(null);
     setColors(null);
     try {
-      const response = await fetch(urlPrefix + "colors", {
+      const response = await fetch(urlPrefixLive + "colors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ Flag: "View", ColorID: 0, Name: "" })
@@ -43,7 +43,7 @@ export default function Color() {
 
   const confirmDelete = id => setDeleteConfirm({ show: true, id });
   const doDelete = async () => {
-    await fetch(urlPrefix + "colors", {
+    await fetch(urlPrefixLive + "colors", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ Flag: "Delete", ColorID: deleteConfirm.id, Name: "" })
@@ -56,13 +56,13 @@ export default function Color() {
   const handleFormSubmit = async e => {
     e.preventDefault();
     if (formMode === "add") {
-      await fetch(urlPrefix + "colors", {
+      await fetch(urlPrefixLive + "colors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ Flag: "Create", ColorID: 0, Name: formName })
       });
     } else if (formMode === "edit") {
-      await fetch(urlPrefix + "colors", {
+      await fetch(urlPrefixLive + "colors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ Flag: "Update", ColorID: editColor.ColorID, Name: formName })

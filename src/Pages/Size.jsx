@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-const urlPrefix = "https://localhost:7012/api/Salman/";
+import { urlPrefix,urlPrefixLive } from "../store/store";
+
 
 export default function Size() {
   const [sizes, setSizes] = useState(null);
@@ -21,7 +22,7 @@ export default function Size() {
     setError(null);
     setSizes(null);
     try {
-      const response = await fetch(urlPrefix + "sizes", {
+      const response = await fetch(urlPrefixLive + "sizes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -47,7 +48,7 @@ export default function Size() {
 
   const confirmDelete = id => setDeleteConfirm({ show: true, id });
   const doDelete = async () => {
-    await fetch(urlPrefix + "sizes", {
+    await fetch(urlPrefixLive + "sizes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -77,7 +78,7 @@ export default function Size() {
         Name: formName
       };
     }
-    await fetch(urlPrefix + "sizes", {
+    await fetch(urlPrefixLive + "sizes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(requestBody)
