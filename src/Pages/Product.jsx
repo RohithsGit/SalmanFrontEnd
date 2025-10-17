@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-
 const urlPrefix = "https://localhost:7012/api/Salman/";
 
-// --- API/utility functions (unchanged) ---
+// --- API Calls ---
 function fillProductPayload(obj) {
   return {
     Flag: obj.Flag || "",
@@ -69,6 +68,8 @@ async function deleteProduct(productId, callback) {
   if (callback) callback(result);
   return result;
 }
+
+// --- UI Components ---
 function EditSvg() {
   return (
     <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
@@ -88,61 +89,118 @@ function DeleteSvg() {
 }
 function PlusIcon() {
   return (
-    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+    <svg width="24" height="24" fill="none" viewBox="0 0 20 20">
       <circle cx="10" cy="10" r="9" fill="#16a34a"/>
-      <path d="M10 6v8M6 10h8" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M10 6v8M6 10h8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   );
 }
-function ProductGroupCard({ name, products, onEdit, onDelete }) {
+function ExcelIcon() {
   return (
-    <div className="bg-white shadow rounded-xl border border-blue-200 px-3 py-2 m-1 w-full flex flex-col gap-1 min-h-[48px]">
-      <div className="text-sm font-bold text-blue-900 text-center mb-1">{name}</div>
-      {products.map(prod => (
-        <div key={prod.ProductID} className="flex flex-row items-center justify-between gap-2 px-1 py-0.5 rounded hover:bg-blue-50 transition">
-          <span className="text-xs text-gray-700 px-2 py-0.5 bg-blue-100 rounded">{prod.SizeID}</span>
-          <span className="text-xs font-bold text-blue-900">₹{prod.SalePrice ?? "--"}</span>
-          <span className="flex gap-1 ml-1">
-            <button title="Edit Product" onClick={() => onEdit(prod)} className="hover:scale-110 transition-transform"><EditSvg /></button>
-            <button title="Delete Product" onClick={() => onDelete(prod.ProductID)} className="hover:scale-110 transition-transform"><DeleteSvg /></button>
-          </span>
+    <svg width="22" height="22" fill="none" viewBox="0 0 20 20">
+      <rect width="20" height="20" rx="4" fill="#65b32e"/>
+      <text x="2" y="15" fontSize="9" fill="#fff" fontWeight="bold">XLSX</text>
+    </svg>
+  );
+}
+
+function SearchableSelect({ options, value, onChange, placeholder }) {
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const selected = options.find(opt => String(opt.value) === String(value));
+  const filtered = options.filter(opt =>
+    !q || (opt.label + "").toLowerCase().includes(q.toLowerCase())
+  );
+  return (
+    <div className="relative">
+      <input
+        className="border px-3 py-2 rounded w-full bg-gray-50 cursor-pointer"
+        value={selected?.label || ""}
+        placeholder={placeholder || "Select"}
+        onFocus={() => setOpen(true)}
+        onChange={e => {
+          setOpen(true);
+          setQ(e.target.value);
+        }}
+        readOnly={!open}
+        onBlur={() => setTimeout(() => setOpen(false), 140)}
+        autoComplete="off"
+      />
+      {open && (
+        <div className="absolute z-50 w-full bg-white border shadow-xl max-h-44 overflow-y-auto rounded">
+          <div className="p-1">
+            <input
+              className="border px-2 py-1 rounded w-full mb-1 text-xs"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              autoFocus
+              placeholder="Search..."
+            />
+          </div>
+          {filtered.length === 0 && (
+            <div className="p-2 text-center text-gray-400 text-xs">No options</div>
+          )}
+          {filtered.map(opt => (
+            <div
+              key={`${opt.value}-${opt.label}`}
+              className={`px-3 py-2 cursor-pointer hover:bg-green-50 text-sm rounded ${String(opt.value) === String(value) ? "bg-green-100 font-bold" : ""}`}
+              onMouseDown={() => {
+                onChange(opt.value);
+                setOpen(false);
+                setQ("");
+              }}
+            >{opt.label}</div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }
-function groupByName(arr) {
-  const out = {};
-  arr.forEach(item => {
-    if (!item.Name) return;
-    if (!out[item.Name]) out[item.Name] = [];
-    out[item.Name].push(item);
-  });
-  return out;
-}
 
-// Modal is unchanged for safety
-function ProductAddModal({ open, onClose, onChange, onSubmit, fields }) {
+function ExcelImportModal({ open, onClose, onImport }) {
+  const [file, setFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const handleSubmit = async e => {
+    e.preventDefault();
+    if (!file) return;
+    setImporting(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await fetch(urlPrefix + "import-products", {
+        method: "POST",
+        body: formData
+      });
+      if (!res.ok) throw new Error("Failed to import Excel");
+      const result = await res.json();
+      if (onImport) onImport(result);
+      setImporting(false);
+      onClose();
+      alert("Import successful!");
+    } catch (err) {
+      setImporting(false);
+      alert("Import failed: " + err.message);
+    }
+  };
   return (
     <AnimatePresence>
       {open && (
         <motion.div
           className="fixed inset-0 flex items-center justify-center z-50"
           style={{
-            backdropFilter: "blur(2px)",
-            background: "rgba(57,60,100,0.22)"
+            backdropFilter: "blur(2.7px)",
+            background: "rgba(52, 255, 92, 0.18)"
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <motion.form
-            onSubmit={onSubmit}
-            className="rounded-3xl shadow-2xl p-14 w-full max-w-4xl relative border border-blue-200
-                       bg-gradient-to-br from-indigo-100 via-sky-50 to-blue-200"
-            initial={{ scale: 0.95, y: 50, opacity: 0.9 }}
+            onSubmit={handleSubmit}
+            className="rounded-2xl shadow-2xl p-8 w-full max-w-md relative border border-green-300 bg-gradient-to-br from-green-100 to-white"
+            initial={{ scale: 0.97, y: 40, opacity: 0.9 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.97, y: 50, opacity: 0 }}
+            exit={{ scale: 0.97, y: 40, opacity: 0 }}
             transition={{ duration: 0.18, type: 'spring' }}
           >
             <button
@@ -151,75 +209,98 @@ function ProductAddModal({ open, onClose, onChange, onSubmit, fields }) {
               aria-label="Close"
               onClick={onClose}
             >×</button>
-            <div className="text-2xl font-semibold text-blue-900 mb-8">Add Product</div>
-            <div className="grid grid-cols-2 gap-8">
-              {/* Column 1 */}
-              <div className="space-y-6">
-                <FieldRow
-                  label="SKU" name="SKU" value={fields.SKU}
-                  onChange={onChange} inputClass="bg-blue-50 border-blue-300"
-                />
-                <FieldRow
-                  label="Product Name" name="Name" value={fields.Name}
-                  onChange={onChange} inputClass="bg-indigo-50 border-indigo-300"
-                />
-                <FieldRow
-                  label="Description" name="Description" value={fields.Description}
-                  onChange={onChange} inputClass="bg-green-50 border-green-300"
-                />
-                <FieldRow
-                  label="Brand ID" name="BrandID" value={fields.BrandID}
-                  onChange={onChange} inputClass="bg-pink-50 border-pink-300"
-                />
-                <FieldRow
-                  label="Category ID" name="CategoryID" value={fields.CategoryID}
-                  onChange={onChange} inputClass="bg-yellow-50 border-yellow-300"
-                />
-                <FieldRow
-                  label="Size ID" name="SizeID" value={fields.SizeID}
-                  onChange={onChange} inputClass="bg-sky-50 border-sky-300"
-                />
-              </div>
-              {/* Column 2 */}
-              <div className="space-y-6">
-                <FieldRow
-                  label="Color ID" name="ColorID" value={fields.ColorID}
-                  onChange={onChange} inputClass="bg-orange-50 border-orange-300"
-                />
-                <FieldRow
-                  label="Supplier ID" name="SupplierID" value={fields.SupplierID}
-                  onChange={onChange} inputClass="bg-teal-50 border-teal-300"
-                />
-                <FieldRow
-                  label="Purchase Price" name="PurchasePrice" type="number" value={fields.PurchasePrice}
-                  onChange={onChange} inputClass="bg-amber-50 border-amber-300"
-                />
-                <FieldRow
-                  label="Sale Price" name="SalePrice" type="number" value={fields.SalePrice}
-                  onChange={onChange} inputClass="bg-purple-50 border-purple-300"
-                />
-                <FieldRow
-                  label="Reorder Level" name="ReorderLevel" type="number" value={fields.ReorderLevel}
-                  onChange={onChange} inputClass="bg-lime-50 border-lime-300"
-                />
-                <div className="flex items-center mt-2">
-                  <label className="text-base min-w-[120px] text-green-700">Active</label>
-                  <input type="checkbox" name="IsActive" checked={fields.IsActive} onChange={onChange}
-                         className="ml-2 accent-green-600 w-5 h-5" />
-                </div>
-              </div>
+            <div className="text-xl font-bold text-green-700 mb-5 flex items-center gap-2">
+              <ExcelIcon />
+              Import Products from Excel
             </div>
-            {/* Buttons */}
-            <div className="flex gap-2 justify-end mt-12">
+            <input type="file" accept=".xlsx,.xls" className="w-full bg-green-50 border border-green-400 px-3 py-2 rounded mb-7" onChange={e => setFile(e.target.files[0])} />
+            <button
+              type="submit"
+              disabled={!file || importing}
+              className="bg-green-600 text-white px-8 py-2 rounded-full font-semibold text-base shadow hover:bg-green-700 transition"
+            >{importing ? "Importing..." : "Import"}</button>
+          </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function ProductModal({ open, onClose, onSubmit, fields, setFields, mode, allOptions }) {
+  const handleChange = e => {
+    const { name, type, value, checked } = e.target;
+    setFields(f => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+  };
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{
+            backdropFilter: "blur(2px)",
+            background: "rgba(20,220,100,0.11)"
+          }}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.96 }}
+        >
+          <motion.form
+            onSubmit={onSubmit}
+            className="rounded-2xl shadow-2xl bg-white p-0 w-[720px] max-w-full relative border border-green-400"
+            initial={{ y: 20, opacity: 0.97 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 28, opacity: 0.94 }}
+            transition={{ duration: 0.16, type: 'spring' }}
+            style={{ minHeight: '0', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            <div className="bg-gradient-to-r from-green-600 via-green-500 to-green-400 text-white font-bold px-10 py-4 rounded-t-2xl text-xl flex items-center">
+              {mode === "add" ? "Add Product" : "Edit Product"}
               <button
-                type="submit"
-                className="bg-green-600 text-white px-8 py-2 rounded-full font-semibold text-base shadow hover:bg-green-700 transition"
-              >Add</button>
-              <button
+                className="ml-auto text-base font-bold bg-gray-200 text-gray-900 rounded-full px-2 py-0.5 hover:bg-gray-400 hover:text-white transition"
                 type="button"
-                className="bg-gray-200 px-8 py-2 rounded-full font-semibold text-base text-gray-700 border hover:bg-gray-300 transition"
+                aria-label="Close"
                 onClick={onClose}
-              >Cancel</button>
+                style={{marginLeft: 18}}
+                title="Close"
+              >×</button>
+            </div>
+            <div className="px-10 pt-5 pb-4">
+              <div className="grid grid-cols-2 gap-x-8 gap-y-4 mb-5">
+                <input name="Name" placeholder="Product Name" value={fields.Name} onChange={handleChange} className="border rounded px-4 py-2" />
+                <SearchableSelect
+                  options={allOptions.BrandID} value={fields.BrandID} onChange={v => setFields(f => ({ ...f, BrandID: v }))}
+                  placeholder="Brand"
+                />
+                <SearchableSelect
+                  options={allOptions.CategoryID} value={fields.CategoryID} onChange={v => setFields(f => ({ ...f, CategoryID: v }))}
+                  placeholder="Category"
+                />
+                <SearchableSelect
+                  options={allOptions.SizeID} value={fields.SizeID} onChange={v => setFields(f => ({ ...f, SizeID: v }))}
+                  placeholder="Size"
+                />
+                <SearchableSelect
+                  options={allOptions.ColorID} value={fields.ColorID} onChange={v => setFields(f => ({ ...f, ColorID: v }))}
+                  placeholder="Color"
+                />
+                <SearchableSelect
+                  options={allOptions.SupplierID} value={fields.SupplierID} onChange={v => setFields(f => ({ ...f, SupplierID: v }))}
+                  placeholder="Supplier"
+                />
+                <input name="PurchasePrice" type="number" placeholder="Purchase Price" value={fields.PurchasePrice} onChange={handleChange} className="border rounded px-4 py-2" />
+                <input name="SalePrice" type="number" placeholder="Sale Price" value={fields.SalePrice} onChange={handleChange} className="border rounded px-4 py-2" />
+                <input name="SKU" placeholder="SKU" value={fields.SKU} onChange={handleChange} className="border rounded px-4 py-2" />
+                <input name="Description" placeholder="Description" value={fields.Description} onChange={handleChange} className="border rounded px-4 py-2" />
+              </div>
+              <div className="flex items-center gap-3 px-1">
+                <input type="checkbox" name="IsActive" checked={fields.IsActive} onChange={handleChange} className="w-5 h-5 accent-green-700" />
+                <label className="text-sm font-semibold text-green-700">Active</label>
+                <button type="submit" className="ml-auto bg-green-600 text-white px-8 py-2 rounded-full font-bold text-base shadow hover:bg-green-800 transition">
+                  {mode === "add" ? "Add" : "Update"}
+                </button>
+                <button type="button" className="bg-gray-200 px-5 py-2 rounded-full font-bold text-base text-gray-700 border hover:bg-gray-300 transition"
+                        onClick={onClose}>Cancel</button>
+              </div>
             </div>
           </motion.form>
         </motion.div>
@@ -228,30 +309,13 @@ function ProductAddModal({ open, onClose, onChange, onSubmit, fields }) {
   );
 }
 
-// FieldRow now gets an inputClass prop for color/border styling:
-function FieldRow({ label, name, value, onChange, type = "text", inputClass = "" }) {
-  return (
-    <div className="flex items-center">
-      <label className="text-base min-w-[120px] text-blue-700">{label}</label>
-      <input
-        className={`border px-4 py-2 rounded-lg text-base w-full transition-all ${inputClass}`}
-        name={name}
-        value={value}
-        onChange={onChange}
-        type={type}
-      />
-    </div>
-  );
-}
-
-
 export default function Product() {
   const [products, setProducts] = useState([]);
-  const [searchText, setSearchText] = useState("");
-  const [searchSize, setSearchSize] = useState("");
   const [error, setError] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
+  const [showImport, setShowImport] = useState(false);
   const [editFields, setEditFields] = useState(null);
   const [addFields, setAddFields] = useState({
     ProductID: "",
@@ -268,25 +332,85 @@ export default function Product() {
     ReorderLevel: "",
     IsActive: true
   });
+  const [filters, setFilters] = useState({
+    Name: "",
+    BrandID: "",
+    CategoryID: "",
+    SizeID: "",
+    ColorID: "",
+    SupplierID: "",
+    SalePrice: "",
+    PurchasePrice: ""
+  });
 
-  const loadProducts = async () => fetchProductList().then(setProducts).catch(e => setError(e.message));
+  // Fetch dropdown options from API (ONCE)
+  const [dropdowns, setDropdowns] = useState([]);
+  useEffect(() => {
+    fetch('https://localhost:7012/api/Salman/usp_GetDropdowuns')
+      .then(res => res.json())
+      .then(setDropdowns)
+      .catch(() => setDropdowns([]));
+  }, []);
+
+  // Build grouped options for modal and display mapping for grid
+  function groupOptions(type) {
+    // To avoid duplicate values, append sourcetype to value for key uniqueness
+    return dropdowns
+      .filter(x => x.SourceType === type)
+      .map(x => ({ value: String(x.ID), label: x.Name }));
+  }
+  const allOptions = {
+    BrandID: groupOptions("Brand"),
+    CategoryID: groupOptions("Category"),
+    SizeID: groupOptions("Size"),
+    ColorID: groupOptions("Color"),
+    SupplierID: groupOptions("Supplier"),
+  };
+
+  // Helper: get label by numeric value for given type
+  function getNameById(sourceType, id) {
+    if (!id) return "--";
+    const opt = dropdowns.find(x => String(x.SourceType) === String(sourceType) && String(x.ID) === String(id));
+    if (!opt) return "--";
+    return opt.Name;
+  }
+
+  const columns = [
+    { key: "Name", label: "Product" },
+    { key: "BrandID", label: "Brand", type: "Brand" },
+    { key: "CategoryID", label: "Category", type: "Category" },
+    { key: "SizeID", label: "Size", type: "Size" },
+    { key: "ColorID", label: "Color", type: "Color" },
+    { key: "SupplierID", label: "Supplier", type: "Supplier" },
+    { key: "SalePrice", label: "Sale Price" },
+    { key: "PurchasePrice", label: "Purchase Price" }
+  ];
+
+  const loadProducts = async () => {
+    try {
+      const data = await fetchProductList();
+      setProducts(data);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   useEffect(() => { loadProducts(); }, []);
 
-  const sizeOptions = Array.from(
-    new Set(products.map(p => p.SizeID || ""))
-  )
-    .filter(x => x !== "")
-    .map(sizeID => {
-      const prod = products.find(p => String(p.SizeID) === String(sizeID));
-      return { ID: sizeID, Name: sizeID };
-    });
+  const filteredProducts = products.filter(prod => (
+    (filters.Name === "" || prod.Name?.toLowerCase().includes(filters.Name.toLowerCase())) &&
+    (filters.BrandID === "" || String(prod.BrandID) === String(filters.BrandID)) &&
+    (filters.CategoryID === "" || String(prod.CategoryID) === String(filters.CategoryID)) &&
+    (filters.SizeID === "" || String(prod.SizeID) === String(filters.SizeID)) &&
+    (filters.ColorID === "" || String(prod.ColorID) === String(filters.ColorID)) &&
+    (filters.SupplierID === "" || String(prod.SupplierID) === String(filters.SupplierID)) &&
+    (filters.SalePrice === "" || String(prod.SalePrice) === String(filters.SalePrice)) &&
+    (filters.PurchasePrice === "" || String(prod.PurchasePrice) === String(filters.PurchasePrice))
+  ));
 
-  const filteredProducts = products.filter(prod =>
-    (searchText === "" || prod.Name?.toLowerCase().includes(searchText.toLowerCase())) &&
-    (searchSize === "" || String(prod.SizeID) === String(searchSize))
-  );
-  const grouped = groupByName(filteredProducts);
-
+  function handleFilterChange(key, value) {
+    setFilters(f => ({ ...f, [key]: value }));
+  }
   function openAddModal() {
     setAddFields({
       ProductID: "",
@@ -307,135 +431,136 @@ export default function Product() {
   }
   function openEditModal(product) { setEditFields({ ...product }); setShowEdit(true);}
   function closeModal() { setShowAdd(false); setShowEdit(false); setEditFields(null);}
-  const handleAddChange = e => {
-    const { name, value, type, checked } = e.target;
-    setAddFields({ ...addFields, [name]: type === "checkbox" ? checked : value });
-  };
-  const handleEditChange = e => {
-    const { name, value, type, checked } = e.target;
-    setEditFields({ ...editFields, [name]: type === "checkbox" ? checked : value });
-  };
-  const handleAddSubmit = async e => {
-    e.preventDefault();
-    await addProduct(addFields, () => {
-      closeModal();
-      loadProducts();
-    });
-  };
-  const handleEditSubmit = async e => {
-    e.preventDefault();
-    await updateProduct(editFields, () => {
-      closeModal();
-      loadProducts();
-    });
-  };
-  const handleDelete = async (productId) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      await deleteProduct(productId, loadProducts);
-    }
-  };
-  function openAddModal() {
-    setAddFields({
-      ProductID: "",
-      SKU: "",
-      Name: "",
-      Description: "",
-      BrandID: "",
-      CategoryID: "",
-      SizeID: "",
-      ColorID: "",
-      SupplierID: "",
-      PurchasePrice: "",
-      SalePrice: "",
-      ReorderLevel: "",
-      IsActive: true
-    });
-    setShowAdd(true); // this line opens the Add Product popup/modal!
+  function openImportModal() { setShowImport(true);}
+  function closeImportModal() { setShowImport(false);}
+  function handleExportExcel() {
+    // Wire up your Excel export logic here
+    alert("Excel export not implemented! Attach your own code here.");
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full min-h-full">
-      {/* Header & Add Button */}
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="text-2xl font-bold text-gray-900 pl-3 py-6">Products Management</h2>
-        <button className="bg-green-600 text-white p-3 rounded-full shadow-lg hover:bg-green-700 transition mr-5 mt-0.5" onClick={openAddModal} title="Add Product"><PlusIcon /></button>
-      </div>
-      {/* Search bar and Filter centered */}
-      <div className="w-full flex flex-col items-center mb-2">
-        <div className="flex items-end gap-6 justify-center">
-          <div>
-            <label className="block text-sm text-gray-700 font-bold mb-1" htmlFor="searchName">Product</label>
-            <input
-              id="searchName"
-              type="text"
-              className="rounded-xl border-2 border-gray-300 focus:border-blue-400 px-4 py-1 text-base w-60"
-              value={searchText}
-              onChange={e => setSearchText(e.target.value)}
-              placeholder="Search product..."
-              autoComplete="off"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-700 font-bold mb-1" htmlFor="searchSize">Size</label>
-            <select
-              id="searchSize"
-              className="rounded-xl border-2 border-gray-300 focus:border-blue-400 px-4 py-1 text-base w-28"
-              value={searchSize}
-              onChange={e => setSearchSize(e.target.value)}
-            >
-              <option value="">All</option>
-              {sizeOptions.map(opt => (
-                <option key={opt.ID} value={opt.ID}>
-                  {opt.Name}
-                </option>
-              ))}
-            </select>
-          </div>
+    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="w-full min-h-full px-3 pt-3">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xl font-bold text-green-800 py-4 pl-3">
+          Products <span className="text-gray-400 font-normal">({filteredProducts.length})</span>
+        </span>
+        <div className="flex gap-3 items-center">
+          <button
+            className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded shadow font-bold hover:bg-green-800 transition text-base"
+            onClick={handleExportExcel}
+          >
+            <ExcelIcon /> Export XLSX
+          </button>
+          <button
+            className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded shadow font-bold hover:bg-green-600 transition text-base"
+            onClick={openImportModal}
+          >
+            <ExcelIcon /> Import XLSX
+          </button>
+          <button
+            className="bg-green-600 p-0.5 rounded-full shadow-lg hover:bg-green-700 transition"
+            style={{ width: 48, height: 48 }}
+            onClick={openAddModal}
+            title="Add Product"
+          >
+            <PlusIcon />
+          </button>
         </div>
-        {/* List count, subheading */}
-        <div className="w-full text-left text-blue-800 font-bold mt-5 text-lg pl-4">Product List</div>
-        <div className="w-full text-left text-gray-500 font-medium pl-4 pb-2 pt-0">{filteredProducts.length} products</div>
       </div>
       {error && (
         <div className="text-red-500 font-bold text-center my-8">{error}</div>
       )}
-      <AnimatePresence>
-        {showAdd && (
-          <ProductAddModal
-            open={showAdd}
-            onClose={closeModal}
-            onChange={handleAddChange}
-            onSubmit={handleAddSubmit}
-            fields={addFields}
-            mode="add"
-          />
-        )}
-        {showEdit && (
-          <ProductAddModal
-            open={showEdit}
-            onClose={closeModal}
-            onChange={handleEditChange}
-            onSubmit={handleEditSubmit}
-            fields={editFields}
-            mode="edit"
-          />
-        )}
-      </AnimatePresence>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 px-2">
-        {Object.entries(grouped).length === 0 ? (
-          <div className="col-span-5 py-10 text-center text-gray-400 text-xs">No products found.</div>
-        ) : (
-          Object.entries(grouped).map(([name, arr]) =>
-            <ProductGroupCard
-              key={arr[0].ProductID}
-              name={name}
-              products={arr}
-              onEdit={openEditModal}
-              onDelete={handleDelete}
-            />
-          )
-        )}
+      <div className="w-full overflow-x-auto bg-white rounded-xl shadow border p-1">
+        <table className="min-w-full">
+          <thead>
+            <tr>
+              {columns.map((col, i) => (
+                <th key={col.key} className="py-3 px-3 border-b-2 border-blue-100 bg-green-50 text-green-700 font-bold text-sm text-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <span>{col.label}</span>
+                    {showFilters && (
+                      <input
+                        type="text"
+                        value={filters[col.key] || ""}
+                        onChange={e => handleFilterChange(col.key, e.target.value)}
+                        className="rounded border border-gray-300 px-2 py-1 w-24 text-xs"
+                        placeholder={`Search`}
+                        style={{ marginTop: 2 }}
+                      />
+                    )}
+                  </div>
+                </th>
+              ))}
+              <th className="py-3 px-2 border-b-2 bg-green-50 text-green-700 text-center font-bold text-sm">
+                <button
+                  className="bg-green-100 px-3 py-0.5 rounded shadow font-bold hover:bg-green-200 text-green-700 text-xs"
+                  style={{ minWidth: 75 }}
+                  onClick={() => setShowFilters(f => !f)}
+                >
+                  {showFilters ? "Hide Filters" : "Show Filters"}
+                </button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProducts.length === 0 ? (
+              <tr><td colSpan={columns.length + 1} className="text-center py-8 text-gray-400 font-bold">No products found.</td></tr>
+            ) : (
+              filteredProducts.map(prod => (
+                <tr key={prod.ProductID} className="hover:bg-green-50 transition">
+                  {columns.map(col => (
+                    <td key={col.key} className="py-2 px-3 border-b text-center text-sm">
+                      {col.type
+                        ? getNameById(col.type, prod[col.key])
+                        : prod[col.key] ?? "--"}
+                    </td>
+                  ))}
+                  <td className="py-2 px-2 border-b text-center">
+                    <span className="inline-flex gap-2">
+                      <button onClick={() => openEditModal(prod)} title="Edit"><EditSvg /></button>
+                      <button onClick={() => deleteProduct(prod.ProductID, loadProducts)} title="Delete"><DeleteSvg /></button>
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
+      {/* Excel Import Modal */}
+      <ExcelImportModal open={showImport} onClose={closeImportModal} onImport={loadProducts} />
+      {/* Add Modal */}
+      <ProductModal
+        open={showAdd}
+        onClose={closeModal}
+        onSubmit={async e => {
+          e.preventDefault();
+          await addProduct(addFields, () => {
+            closeModal();
+            loadProducts();
+          });
+        }}
+        fields={addFields}
+        setFields={setAddFields}
+        mode="add"
+        allOptions={allOptions}
+      />
+      {/* Edit Modal */}
+      <ProductModal
+        open={showEdit}
+        onClose={closeModal}
+        onSubmit={async e => {
+          e.preventDefault();
+          await updateProduct(editFields, () => {
+            closeModal();
+            loadProducts();
+          });
+        }}
+        fields={editFields || addFields}
+        setFields={setEditFields}
+        mode="edit"
+        allOptions={allOptions}
+      />
     </motion.div>
   );
 }

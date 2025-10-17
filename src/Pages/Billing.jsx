@@ -15,29 +15,43 @@ const products = [
 const BillPreviewModal = ({ open, onClose, billItems, customerName, customerMobile, finalTotal }) => {
   const billViewRef = useRef();
 
+  // List of customers (each with name/mobile)
+  const [customers, setCustomers] = useState([
+    { name: "Alice", mobile: "9000000001" },
+    { name: "Bob", mobile: "9000000002" },
+    { name: "Charlie", mobile: "9000000003" }
+  ]);
+  const [selectedCustomerIdx, setSelectedCustomerIdx] = useState(0);
+
   // Upload bill image to ASP.NET backend
   const handleDownload = async () => {
     if (!billViewRef.current) return;
     const canvas = await html2canvas(billViewRef.current, { useCORS: true, backgroundColor: "#fff" });
 
-    // Convert canvas to Blob for upload
     canvas.toBlob(async (blob) => {
       if (!blob) { alert("Failed to export image."); return; }
-      const date = new Date().toISOString().slice(0, 10);
       const file = new File([blob], `bill-${Date.now()}.png`, { type: "image/png" });
       const formData = new FormData();
       formData.append("file", file);
 
+      // Use selected customer from list state
+      const customer = customers[selectedCustomerIdx] || { name: "DefaultName", mobile: "0000000000" };
+      formData.append("customerName", customer.name);
+      formData.append("customerMobile", customer.mobile);
+      formData.append("customFolderPath", "D:\\Billphot");
+
       try {
-        const uploadResp = await fetch("https://localhost:7012/api/Bill/SaveBill", {
+        const uploadResp = await fetch("https://localhost:7012/api/Salman/SaveBill", {
           method: "POST",
           body: formData
         });
         const uploadResult = await uploadResp.json();
+        console.log(uploadResult); // Debug the server response
+
         if (uploadResp.ok) {
           alert("Bill uploaded and saved to server at: " + uploadResult.filePath);
         } else {
-          alert("Upload failed: " + (uploadResult || "Error"));
+          alert("Upload failed: " + (uploadResult.error || uploadResult.message || JSON.stringify(uploadResult)));
         }
       } catch (err) {
         alert("Upload error: " + err.message);
@@ -51,12 +65,22 @@ const BillPreviewModal = ({ open, onClose, billItems, customerName, customerMobi
       <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-2xl w-full relative">
         <button onClick={onClose} className="absolute top-2 right-3 text-gray-400 hover:text-red-600 text-2xl font-bold">&times;</button>
         <h2 className="text-2xl font-bold mb-4 text-purple-700 text-center">Clothing Shop Bill Preview</h2>
+        <div className="mb-4">
+          <label className="font-semibold text-purple-700 mr-2">Select Customer:</label>
+          <select value={selectedCustomerIdx} onChange={e => setSelectedCustomerIdx(Number(e.target.value))} className="border p-1 rounded">
+            {customers.map((c, idx) => (
+              <option value={idx} key={idx}>{c.name} ({c.mobile})</option>
+            ))}
+          </select>
+        </div>
         <div ref={billViewRef} className="border rounded-xl bg-purple-50 py-4 px-6 mb-4">
           <div className="flex justify-between mb-2">
             <div>
               <div className="text-lg font-bold text-purple-800">Salman Shop</div>
               <div className="text-xs text-gray-500">Billing Date: {new Date().toLocaleDateString()}</div>
-              <div className="text-xs text-gray-500">Customer: {customerName || "-"} ({customerMobile || "-"})</div>
+              <div className="text-xs text-gray-500">
+                Customer: {customers[selectedCustomerIdx].name} ({customers[selectedCustomerIdx].mobile})
+              </div>
             </div>
             <div className="text-right font-bold text-blue-600">Grand Total: ₹{finalTotal}</div>
           </div>
@@ -101,7 +125,8 @@ const BillPreviewModal = ({ open, onClose, billItems, customerName, customerMobi
       </div>
     </div>
   );
-}
+};
+
 
 // --- Main Billing Component ---
 const Billing = () => {

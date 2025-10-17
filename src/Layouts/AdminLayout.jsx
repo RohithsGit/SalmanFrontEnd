@@ -9,42 +9,19 @@ import Size from '../Pages/Size.jsx';
 import Product from '../Pages/Product';
 import Customers from "../Pages/Customers.jsx";
 import Billing from "../Pages/Billing.jsx";
-import {  Sidebar, LogoutPopup } from "./Components/AdminMiniComponents.jsx";
-
-// --- Inventory Widget for Navbar ---
-function InventoryStatsWidget({ inventoryData, products }) {
-  const totalProducts = products.length || 0;
-  const lowStock = inventoryData.filter(x => x.low).length;
-
-  return (
-    <div className="flex items-center space-x-7 ml-6">
-      <div className="flex flex-col items-center">
-        <span className="text-xs text-gray-500 font-medium">Total Products</span>
-        <span className="text-lg font-bold text-blue-700">{totalProducts}</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <span className="text-xs text-gray-500 font-medium">Low Stock</span>
-        <span className="text-lg font-bold text-red-600">{lowStock}</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <span className="text-xs text-gray-500 font-medium">Last Updated</span>
-        <span className="text-lg font-bold">Today</span>
-      </div>
-    </div>
-  );
-}
+import { Sidebar, LogoutPopup } from "./Components/AdminMiniComponents.jsx";
 
 export default function AdminLayout() {
-  const [activePanel, setActivePanel] = useState('Products');
+  const [activePanel, setActivePanel] = useState('Billing'); // Default to Billing
   const [products, setProducts] = useState([]);
   const [inventoryData, setInventoryData] = useState([]);
   const [billingData, setBillingData] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
   const navigate = useNavigate();
 
   const menuItems = [
-    { name: 'Products', icon: '👕' },
     { name: 'Billing', icon: '🧾' },
     { name: 'Customers', icon: '👥' },
     { name: 'Brands', icon: '🏷️' },
@@ -52,6 +29,7 @@ export default function AdminLayout() {
     { name: 'Colors', icon: '🎨' },
     { name: 'Suppliers', icon: '🏢' },
     { name: 'Size', icon: '🏢' }
+    // Inventory button is not in sidebar
   ];
 
   useEffect(() => {
@@ -102,17 +80,42 @@ export default function AdminLayout() {
   };
   const handleLogoutCancel = () => { setShowLogoutPopup(false); };
 
+  // -- Inventory button: sets special state, closes if other menu/clicks --
+  const handleInventoryClick = () => {
+    setShowInventory(true);
+  };
+  const handleCloseInventory = () => {
+    setShowInventory(false);
+  };
+
+  // Menu click: always close inventory and set panel
+  const handleMenuPanel = panel => {
+    setShowInventory(false); // always close inventory view on menu click
+    setActivePanel(panel);
+  };
+
+  // --- Render Main Content ---
   const renderMainContent = () => {
+    if (showInventory) {
+      return (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-green-700">Inventory</h2>
+            <button className="px-4 py-2 bg-green-200 text-green-900 rounded-lg font-semibold hover:bg-green-300" onClick={handleCloseInventory}>Close Inventory</button>
+          </div>
+          <Product />
+        </div>
+      );
+    }
     switch (activePanel) {
       case 'Products': return <Product />;
-      case 'Billing': return <Billing/> 
+      case 'Billing': return <Billing/>;
       case 'Customers': return <Customers/>;
       case 'Brands': return <Brand />;
       case 'Categories': return <Category />;
       case 'Colors': return <Color />;
       case 'Suppliers': return <Supplier />;
       case 'Size': return <Size />;
-      
       default:
         return (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full flex items-center justify-center">
@@ -143,22 +146,35 @@ export default function AdminLayout() {
         <ul className="flex space-x-6 items-center">
           <motion.li whileHover={{ scale: 1.05 }} className="hover:text-blue-500 transition-colors duration-300 cursor-pointer font-semibold">Home</motion.li>
           <motion.li whileHover={{ scale: 1.05 }} className="hover:text-blue-500 transition-colors duration-300 cursor-pointer font-semibold">Reports</motion.li>
-          <motion.li whileHover={{ scale: 1.05 }} className="hover:text-blue-500 transition-colors duration-300 cursor-pointer font-semibold">Settings</motion.li>
-          <InventoryStatsWidget inventoryData={inventoryData} products={products} />
+          <motion.li whileHover={{ scale: 1.05 }} className="hover:text-blue-500 transition-colors duration-300 cursor-pointer font-semibold">Profile</motion.li>
         </ul>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="rounded-full px-6 py-2 bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition duration-200 font-semibold"
-          onClick={handleLogoutClick}
-        >
-          Logout
-        </motion.button>
+        <div className="flex flex-row gap-4 items-center">
+          {/* Green Inventory Button */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="rounded-full px-6 py-2 bg-green-600 text-white shadow-lg hover:bg-green-700 transition duration-200 font-semibold"
+            onClick={handleInventoryClick}
+          >
+            Inventory
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="rounded-full px-6 py-2 bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition duration-200 font-semibold"
+            onClick={handleLogoutClick}
+          >
+            Logout
+          </motion.button>
+        </div>
       </nav>
       <div className="flex flex-1 h-0">
-        <Sidebar menuItems={menuItems} activePanel={activePanel} setActivePanel={setActivePanel} />
+        <Sidebar
+          menuItems={menuItems}
+          activePanel={activePanel}
+          setActivePanel={panel => handleMenuPanel(panel)}
+        />
         <main className="flex-1 p-8 h-full overflow-auto">{renderMainContent()}</main>
-        {/* InventoryPanel removed */}
       </div>
     </div>
   );
