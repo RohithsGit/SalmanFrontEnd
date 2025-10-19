@@ -3,7 +3,6 @@ import Login from './Login';
 import './App.css'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AdminLayout  from './Layouts/AdminLayout';
-import ParentLayout from './Layouts/ParentLayout';
 
 
 function RouterHandle() {
