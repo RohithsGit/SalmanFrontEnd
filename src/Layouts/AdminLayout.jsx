@@ -1,77 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import Brand from "../Pages/Brand.jsx";
 import Category from '../Pages/Category.jsx';
 import Color from '../Pages/Color.jsx';
-import Supplier from '../Pages/Suppliers.jsx';
 import Size from '../Pages/Size.jsx';
 import Product from '../Pages/Product';
-import Customers from "../Pages/Customers.jsx";
 import Billing from "../Pages/Billing.jsx";
 import { Sidebar, LogoutPopup } from "./Components/AdminMiniComponents.jsx";
 
 export default function AdminLayout() {
   const [activePanel, setActivePanel] = useState('Billing'); // Default to Billing
-  const [products, setProducts] = useState([]);
-  const [inventoryData, setInventoryData] = useState([]);
-  const [billingData, setBillingData] = useState([]);
-  const [customers, setCustomers] = useState([]);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const navigate = useNavigate();
 
   const menuItems = [
     { name: 'Billing', icon: '🧾' },
-    { name: 'Customers', icon: '👥' },
-    { name: 'Brands', icon: '🏷️' },
     { name: 'Categories', icon: '📂' },
     { name: 'Colors', icon: '🎨' },
-    { name: 'Suppliers', icon: '🏢' },
     { name: 'Size', icon: '🏢' }
     // Inventory button is not in sidebar
   ];
-
-  useEffect(() => {
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => setProducts(data))
-      .catch(() => setProducts([
-        { sku: 'SAR101', name: 'Banarasi Silk Saree', brand: 'FabIndia', price: 3800, stock: 15 },
-        { sku: 'KRT202', name: 'Cotton Kurta', brand: 'Raymond', price: 799, stock: 40 },
-        { sku: 'LHG303', name: 'Embroidered Lehenga', brand: 'Biba', price: 5200, stock: 8 },
-        { sku: 'SHW404', name: 'Silk Sherwani', brand: 'Manyavar', price: 6000, stock: 3 }
-      ]));
-  }, []);
-
-  useEffect(() => {
-    fetch('/api/inventory')
-      .then(res => res.json())
-      .then(data => setInventoryData(data))
-      .catch(() => setInventoryData([
-        { name: 'Banarasi Silk Saree', stock: 15, low: false },
-        { name: 'Cotton Kurta', stock: 3, low: true },
-        { name: 'Embroidered Lehenga', stock: 8, low: false },
-        { name: 'Silk Sherwani', stock: 2, low: true }
-      ]));
-  }, []);
-
-  useEffect(() => {
-    fetch('/api/billing')
-      .then(res => res.json())
-      .then(data => setBillingData(data))
-      .catch(() => setBillingData(products.slice(0, 2)));
-  }, [products]);
-
-  useEffect(() => {
-    fetch('/api/customers')
-      .then(res => res.json())
-      .then(data => setCustomers(data))
-      .catch(() => setCustomers([
-        { name: 'Anjali Sharma', phone: '9845012345', email: 'anjali@gmail.com', address: 'Banjara Hills, Hyderabad' },
-        { name: 'Rahul Verma', phone: '9811112233', email: 'rahul@gmail.com', address: 'Colaba, Mumbai' }
-      ]));
-  }, []);
 
   const handleLogoutClick = () => { setShowLogoutPopup(true); };
   const handleLogoutConfirm = () => {
@@ -110,11 +59,8 @@ export default function AdminLayout() {
     switch (activePanel) {
       case 'Products': return <Product />;
       case 'Billing': return <Billing/>;
-      case 'Customers': return <Customers/>;
-      case 'Brands': return <Brand />;
       case 'Categories': return <Category />;
       case 'Colors': return <Color />;
-      case 'Suppliers': return <Supplier />;
       case 'Size': return <Size />;
       default:
         return (

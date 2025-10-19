@@ -22,10 +22,10 @@ export default function Category() {
     setError(null);
     setCategories(null);
     try {
-      const response = await fetch(urlPrefixLive + "categories", {
+      const response = await fetch(urlPrefixLive + "CategoryMaster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Flag: "View", CategoryID: 0, Name: "" })
+        body: JSON.stringify({ Flag: "view", CategoryID: "0", CategoryName: "" })
       });
       if (!mounted.current) return;
       if (response.ok) setCategories(await response.json());
@@ -39,15 +39,15 @@ export default function Category() {
   const handleEdit = category => {
     setFormMode("edit");
     setEditCategory(category);
-    setFormName(category.Name);
+    setFormName(category.CategoryName);
   };
 
   const confirmDelete = id => setDeleteConfirm({ show: true, id });
   const doDelete = async () => {
-    await fetch(urlPrefixLive + "categories", {
+    await fetch(urlPrefixLive + "CategoryMaster", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Flag: "Delete", CategoryID: deleteConfirm.id, Name: "" })
+      body: JSON.stringify({ Flag: "Delete", CategoryID: deleteConfirm.id, CategoryName: "" })
     });
     setDeleteConfirm({ show: false, id: null });
     fetchCategories();
@@ -57,16 +57,16 @@ export default function Category() {
   const handleFormSubmit = async e => {
     e.preventDefault();
     if (formMode === "add") {
-      await fetch(urlPrefixLive + "categories", {
+      await fetch(urlPrefixLive + "CategoryMaster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Flag: "Create", CategoryID: 0, Name: formName })
+        body: JSON.stringify({ Flag: "add", CategoryID: "0", CategoryName: formName })
       });
     } else if (formMode === "edit") {
-      await fetch(urlPrefixLive + "categories", {
+      await fetch(urlPrefixLive + "CategoryMaster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Flag: "Update", CategoryID: editCategory.CategoryID, Name: formName })
+        body: JSON.stringify({ Flag: "Update", CategoryID: editCategory.CategoryID, CategoryName: formName })
       });
     }
     setFormName("");
@@ -134,7 +134,7 @@ export default function Category() {
             ) : categories.map(category => (
               <tr key={category.CategoryID} className="border-b last:border-0">
                 <td className="p-3 text-left">{category.CategoryID}</td>
-                <td className="p-3 text-left">{category.Name}</td>
+                <td className="p-3 text-left">{category.CategoryName}</td>
                 <td className="p-3 text-center space-x-1">
                   <button className="bg-blue-500 px-3 py-1 rounded text-white"
                     onClick={() => handleEdit(category)}>

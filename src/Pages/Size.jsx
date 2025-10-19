@@ -22,13 +22,13 @@ export default function Size() {
     setError(null);
     setSizes(null);
     try {
-      const response = await fetch(urlPrefixLive + "sizes", {
+      const response = await fetch(urlPrefixLive + "SizeMaster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           Flag: "View",
-          SizeID: 0,
-          Name: ""
+          SizeID: "0",
+          SizeName: ""
         })
       });
       if (!mounted.current) return;
@@ -43,18 +43,18 @@ export default function Size() {
   const handleEdit = size => {
     setFormMode("edit");
     setEditSize(size);
-    setFormName(size.Name);
+    setFormName(size.SizeName);
   };
 
   const confirmDelete = id => setDeleteConfirm({ show: true, id });
   const doDelete = async () => {
-    await fetch(urlPrefixLive + "sizes", {
+    await fetch(urlPrefixLive + "SizeMaster", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         Flag: "Delete",
         SizeID: deleteConfirm.id,
-        Name: ""
+        SizeName: ""
       })
     });
     setDeleteConfirm({ show: false, id: null });
@@ -67,18 +67,18 @@ export default function Size() {
     let requestBody;
     if (formMode === "add") {
       requestBody = {
-        Flag: "Create",
-        SizeID: 0,
-        Name: formName
+        Flag: "add",
+        SizeID: "0",
+        SizeName: formName
       };
     } else if (formMode === "edit" && editSize) {
       requestBody = {
         Flag: "Update",
         SizeID: editSize.SizeID,
-        Name: formName
+        SizeName: formName
       };
     }
-    await fetch(urlPrefixLive + "sizes", {
+    await fetch(urlPrefixLive + "SizeMaster", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(requestBody)
@@ -150,7 +150,7 @@ export default function Size() {
             ) : sizes.map(size => (
               <tr key={size.SizeID} className="border-b last:border-0">
                 <td className="p-3 text-left">{size.SizeID}</td>
-                <td className="p-3 text-left">{size.Name}</td>
+                <td className="p-3 text-left">{size.SizeName}</td>
                 <td className="p-3 text-center">
                   <div className="flex flex-row gap-2 justify-center">
                     <button className="bg-blue-500 px-3 py-1 rounded text-white"

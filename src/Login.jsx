@@ -23,9 +23,8 @@ export default function Login() {
         }),
       });
 
-      const obj = await response.json();
-      const data = Array.isArray(obj) && obj.length > 0 ? obj[0] : {};
-      if (response.ok && data.Status === "succes") {
+      const data = await response.json();
+      if (response.ok && data.status === "succes") {
         dispatch(loginSuccess({
           LoginID: data.LoginID,
           Role: data.Role,
@@ -36,8 +35,8 @@ export default function Login() {
         }));
         localStorage.setItem("authToken", data.token || "mock-token");
         setTimeout(() => {
-          switch (data.Role.toLowerCase()) {
-            case "admin": navigate("/admin"); break;
+          switch (data.role.toLowerCase()) {
+            case "salman": navigate("/admin"); break;
             case "rohith": navigate("/student"); break;
             case "teacher": navigate("/teacher"); break;
             case "parent": navigate("/parent"); break;

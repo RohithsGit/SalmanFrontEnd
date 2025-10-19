@@ -21,10 +21,10 @@ export default function Color() {
     setError(null);
     setColors(null);
     try {
-      const response = await fetch(urlPrefixLive + "colors", {
+      const response = await fetch(urlPrefixLive + "ColorMaster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Flag: "View", ColorID: 0, Name: "" })
+        body: JSON.stringify({ flag: "view", colorId: "", colorName: "" })
       });
       if (!mounted.current) return;
       if (response.ok) setColors(await response.json());
@@ -38,15 +38,15 @@ export default function Color() {
   const handleEdit = color => {
     setFormMode("edit");
     setEditColor(color);
-    setFormName(color.Name);
+    setFormName(color.ColorName);
   };
 
   const confirmDelete = id => setDeleteConfirm({ show: true, id });
   const doDelete = async () => {
-    await fetch(urlPrefixLive + "colors", {
+    await fetch(urlPrefixLive + "ColorMaster", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Flag: "Delete", ColorID: deleteConfirm.id, Name: "" })
+      body: JSON.stringify({ Flag: "Delete", ColorID: deleteConfirm.id, ColorName: "" })
     });
     setDeleteConfirm({ show: false, id: null });
     fetchColors();
@@ -56,16 +56,16 @@ export default function Color() {
   const handleFormSubmit = async e => {
     e.preventDefault();
     if (formMode === "add") {
-      await fetch(urlPrefixLive + "colors", {
+      await fetch(urlPrefixLive + "ColorMaster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Flag: "Create", ColorID: 0, Name: formName })
+        body: JSON.stringify({ Flag: "add", ColorID: "0", ColorName: formName })
       });
     } else if (formMode === "edit") {
-      await fetch(urlPrefixLive + "colors", {
+      await fetch(urlPrefixLive + "ColorMaster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Flag: "Update", ColorID: editColor.ColorID, Name: formName })
+        body: JSON.stringify({ Flag: "Update", ColorID: editColor.ColorID, ColorName: formName })
       });
     }
     setFormName("");
@@ -131,7 +131,7 @@ export default function Color() {
             ) : colors.map(color => (
               <tr key={color.ColorID} className="border-b last:border-0">
                 <td className="p-3 text-left">{color.ColorID}</td>
-                <td className="p-3 text-left">{color.Name}</td>
+                <td className="p-3 text-left">{color.ColorName}</td>
                 <td className="p-3 text-center space-x-1">
                   <button className="bg-blue-500 px-3 py-1 rounded text-white"
                     onClick={() => handleEdit(color)}>
