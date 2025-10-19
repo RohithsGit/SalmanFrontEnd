@@ -15,7 +15,7 @@ function RouterHandle() {
       {/* Login page */}
       <Route path="/" element={<Login />} />
       {/* Admin routes */}
-      <Route path="/admin/*" element={<AdminLayout />} />
+      <Route path="/admin" element={<AdminLayout />} />
       <Route path="/*" element={<Login />} />
     </Routes>
   </Router>
